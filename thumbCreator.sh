@@ -6,7 +6,7 @@
 # Starting point, interval and resolution of the images can be defined
 
 ### Needed ### 
-# avconv ==> fork of ffmpeg (but ffmpeg was depreciated for Ubuntu 14.04)
+# avconv ==> fork of ffmpeg (because ffmpeg was depreciated for Ubuntu 14.04)
 
 ### Configuration ### 
 STARTSHOT=0 		# timestamp of the first screenshot in sec.
