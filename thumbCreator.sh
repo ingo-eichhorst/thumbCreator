@@ -4,6 +4,7 @@
 # The script takes screenshots of the first movie in subdirectories of the current directory
 # It creates a directory /thumb_<<resulution>> in the subdirectory to save the images
 # Starting point, interval and resolution of the images can be defined
+# from v 0.2.1 the script creates an overview xml in the start folder and index xml in the thumb folder
 
 ### Needed ### 
 # avconv ==> fork of ffmpeg (because ffmpeg was depreciated for Ubuntu 14.04)
@@ -17,6 +18,11 @@ echo "********** thumbCreator ***********"
 
 start_dir=$(pwd)
 echo "starting directory: "$start_dir
+
+# create base xml to collect all thumb-information
+touch mainThumbs.xml
+echo '<?xml version="1.0" encoding="UTF-8"?>' >> mainThumbs.xml
+echo "<main>" >> mainThumbs.xml
 
 # create an array of all sub-direcorys and loop through
 dirs=( $(find . -maxdepth 2 -type d -printf '%P\n') )
@@ -33,6 +39,17 @@ for path in "${dirs[@]}"
         # create subdir for saving the thumbs  
         if [ ! -d ./thumbs_$RESOLUTION/ ]; then
           mkdir thumbs_$RESOLUTION/
+
+          # create thumbs index file in thumbs folder
+          touch thumbs_$RESOLUTION/titleThumbs.xml
+          echo '<?xml version="1.0" encoding="UTF-8"?>' >> thumbs_$RESOLUTION/titleThumbs.xml
+          echo "<main>" >> thumbs_$RESOLUTION/titleThumbs.xml
+
+          # reference thumbs file in the mainThumbs.xml
+          echo "<thumbs>" >> $start_dir/mainThumbs.xml
+            echo "$path/thumbs_$RESOLUTION/titleThumbs.xml" >> $start_dir/mainThumbs.xml
+          echo "</thumbs>" >> $start_dir/mainThumbs.xml
+
           # Get movie length from file
           ff=$(avconv -i "$filename" 2>&1)
           d="${ff#*Duration: }"
@@ -49,9 +66,21 @@ for path in "${dirs[@]}"
             # take a shot
             avconv -an -ss $counter -t 0.01 -i "$filename" -s $RESOLUTION "thumbs_$RESOLUTION/$counter.jpg" >/dev/null 2>&1
             #avconv: an=without audio; ss=start position; t=length; i=input; s=thumbnail size
+
+            #note shot in xml
+            echo "<chapter>" >> thumbs_$RESOLUTION/titleThumbs.xml
+              echo "<time>" >> thumbs_$RESOLUTION/titleThumbs.xml
+                echo $counter >> thumbs_$RESOLUTION/titleThumbs.xml
+              echo "</time>">> thumbs_$RESOLUTION/titleThumbs.xml
+              echo "<img>" >> thumbs_$RESOLUTION/titleThumbs.xml
+                echo "$path/thumbs_$RESOLUTION/$counter.jpg" >> thumbs_$RESOLUTION/titleThumbs.xml
+              echo "</img>">> thumbs_$RESOLUTION/titleThumbs.xml
+            echo "</chapter>" >> thumbs_$RESOLUTION/titleThumbs.xml
+
             # set counter to next shot position interval in sec.   
             let counter=counter+INTERVAL
           done
+          echo "</main>" >> thumbs_$RESOLUTION/titleThumbs.xml
           echo "$(tput setaf 2)Thumbs created!$(tput setaf 7)"
         else
           echo "$(tput setaf 3)Thumbs directory already exists$(tput setaf 7)"
@@ -61,3 +90,4 @@ for path in "${dirs[@]}"
       fi
     cd "${start_dir}"
   done
+echo "</main>" >> mainThumbs.xml
