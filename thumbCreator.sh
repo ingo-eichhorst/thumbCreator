@@ -11,43 +11,57 @@
 
 ### Configuration ### 
 STARTSHOT=0 		      # timestamp of the first screenshot in sec.
-INTERVAL=30 		      # interval between the shots
+INTERVAL=300	        # interval between the shots
 RESOLUTION="640x360" 	# Resolution of the output thumbnails 320x180
 
 echo "********** thumbCreator ***********"
 
+mkdir output
+cd output
 start_dir=$(pwd)
 echo "starting directory: "$start_dir
+
+# define movie directory
+read -e -p "Enter Path to movie root directory: " -i "/home/ingo/shares/NAS/Filme" movie_dir
+echo $movie_dir
 
 # create base xml to collect all thumb-information
 touch mainThumbs.xml
 echo '<?xml version="1.0" encoding="UTF-8"?>' >> mainThumbs.xml
 echo "<main>" >> mainThumbs.xml
 
-# create an array of all sub-direcorys and loop through
+# create an array of all movie sub-direcorys and loop through
+cd "${movie_dir}"
 dirs=( $(find . -maxdepth 2 -type d -printf '%P\n') )
 echo "number of subdirectories: "${#dirs[@]}
 for path in "${dirs[@]}"
   do
     echo ""
+    cd "${movie_dir}"
     cd "${path}"
-    echo "******** subdirectory: "$path" ********"
+    echo "******** subdirectory: "$(pwd)" : "$path"  ********"
       # Take the first matching file in the current directory
-      filename=$(ls *.m* | head -1)
+      filename="$(ls *.mp* | head -1)"
       # perform only if there is any video file
       if [ -n "$filename" ]; then
-        # create subdir for saving the thumbs  
-        if [ ! -d ./thumbs_$RESOLUTION/ ]; then
-          mkdir thumbs_$RESOLUTION/
+        # create subdir for saving the thumbs 
+        thumbfolder="${filename%.*}"
+        thumbfolder=$(echo $thumbfolder | tr -d ' ')
+        targetfolder="$start_dir/$thumbfolder"
+        
+        echo $targetfolder
+        if [ ! -d $targetfolder ]; then
+          mkdir $targetfolder
 
+          target_xml="$targetfolder/titleThumbs.xml"
           # create thumbs index file in thumbs folder
-          touch thumbs_$RESOLUTION/titleThumbs.xml
-          echo '<?xml version="1.0" encoding="UTF-8"?>' >> thumbs_$RESOLUTION/titleThumbs.xml
-          echo "<main>" >> thumbs_$RESOLUTION/titleThumbs.xml
+          touch $target_xml
+          echo '<?xml version="1.0" encoding="UTF-8"?>' >> $target_xml
+          echo "<main>" >> $target_xml
 
           # reference thumbs file in the mainThumbs.xml
           echo "<thumbs>" >> $start_dir/mainThumbs.xml
-            echo "$path/thumbs_$RESOLUTION/titleThumbs.xml" >> $start_dir/mainThumbs.xml
+            echo "$target_xml" >> $start_dir/mainThumbs.xml
           echo "</thumbs>" >> $start_dir/mainThumbs.xml
 
           # Get movie length from file
@@ -64,23 +78,27 @@ for path in "${dirs[@]}"
           while [ $counter -lt $length_sec_int ] 	
             do
             # take a shot
-            avconv -an -ss $counter -t 0.01 -i "$filename" -s $RESOLUTION "thumbs_$RESOLUTION/$counter.jpg" >/dev/null 2>&1
-            #avconv: an=without audio; ss=start position; t=length; i=input; s=thumbnail size
+            #ffprobe -select_streams v -show_frames "$filename" 
+            #avconv -an -ss $counter -i "$filename" -vsync 1 -r 1 -an -y -s $RESOLUTION "$targetfolder/$counter.jpg"
+            avconv -an -ss $counter -t 0.01 -i "$filename" -ss 00:00:02 -vframes 1 -s $RESOLUTION "$targetfolder/$counter.jpg" >/dev/null 2>&1
+            #avconv -an -ss $counter -t 0.01 -i "$filename" -s $RESOLUTION "$targetfolder/$counter.jpg" >/dev/null 2>&1
+            #avconv: an=without audio; ss=start position; t=length; i=input; -ss 00:00:03 -vframes 1; s=thumbnail size
 
             #note shot in xml
-            echo "<chapter>" >> thumbs_$RESOLUTION/titleThumbs.xml
-              echo "<time>" >> thumbs_$RESOLUTION/titleThumbs.xml
-                echo $counter >> thumbs_$RESOLUTION/titleThumbs.xml
-              echo "</time>">> thumbs_$RESOLUTION/titleThumbs.xml
-              echo "<img>" >> thumbs_$RESOLUTION/titleThumbs.xml
-                echo "$path/thumbs_$RESOLUTION/$counter.jpg" >> thumbs_$RESOLUTION/titleThumbs.xml
-              echo "</img>">> thumbs_$RESOLUTION/titleThumbs.xml
-            echo "</chapter>" >> thumbs_$RESOLUTION/titleThumbs.xml
+            
+            echo "<chapter>" >> $target_xml
+              echo "<time>" >> $target_xml
+                echo $counter >> $target_xml
+              echo "</time>">> $target_xml
+              echo "<img>" >> $target_xml
+                echo "$targetfolder/$counter.jpg" >> $target_xml
+              echo "</img>">> $target_xml
+            echo "</chapter>" >> $target_xml
 
             # set counter to next shot position interval in sec.   
             let counter=counter+INTERVAL
           done
-          echo "</main>" >> thumbs_$RESOLUTION/titleThumbs.xml
+          echo "</main>" >> $target_xml
           echo "$(tput setaf 2)Thumbs created!$(tput setaf 7)"
         else
           echo "$(tput setaf 3)Thumbs directory already exists$(tput setaf 7)"
@@ -88,6 +106,7 @@ for path in "${dirs[@]}"
       else
         echo "$(tput setaf 1)No video files found in subdirectory$(tput setaf 7)"
       fi
-    cd "${start_dir}"
   done
-echo "</main>" >> mainThumbs.xml
+cd "${start_dir}"
+cd ..
+echo "</main>" >> $start_dir/mainThumbs.xml

@@ -3,6 +3,10 @@ thumbCreator
 
 The script takes screenshots of the first movie in subdirectories of the current directory
 
+Version 0.2.2 - change log
+============
+1. XML and thumbnail creation seperately from the movie
+2. Handling h.264 files (where the image is grey if it's not taken on a keyframe)
 
 Version 0.2.1 - change log
 ============
