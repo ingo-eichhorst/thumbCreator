@@ -1,6 +1,8 @@
 thumbCreator
 ============
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/160231d7ce0d4eada25f6a1ba9b2f83d)](https://www.codacy.com/app/ingo-eichhorst/thumbCreator?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ingo-eichhorst/thumbCreator&amp;utm_campaign=Badge_Grade)
+
 The script takes screenshots of the first movie in subdirectories of the current directory
 
 How-To
